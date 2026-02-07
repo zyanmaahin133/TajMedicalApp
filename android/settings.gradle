@@ -19,4 +19,4 @@ rootProject.name = "TajMedicalApp"
 include(":app")
 
 // REQUIRED for React Native 0.73+
-includeBuild("../node_modules/react-native-gradle-plugin")
+includeBuild("../node_modules/@react-native/gradle-plugin")

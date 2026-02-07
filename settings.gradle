@@ -18,5 +18,4 @@ dependencyResolutionManagement {
 rootProject.name = 'TajMedicalApp'
 include ':app'
 
-apply from: new File(settings.getRootDir(), "/node_modules/react-native/android/sdk-49.gradle")
-apply from: new File(settings.getRootDir(), "/node_modules/react-native/android/sdk-50.gradle")
+includeBuild('./node_modules/@react-native/gradle-plugin')

@@ -20,7 +20,6 @@ import MedicineDetailsScreen from '../screens/pharmacy/MedicineDetailsScreen';
 import CartScreen from '../screens/pharmacy/CartScreen';
 import CheckoutScreen from '../screens/pharmacy/CheckoutScreen';
 import OrderSuccessScreen from '../screens/pharmacy/OrderSuccessScreen';
-import WholesaleScreen from '../screens/WholesaleScreen';
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -113,12 +112,6 @@ const AboutUsNavigator = () => (
     </Stack.Navigator>
 );
 
-const WholesaleNavigator = () => (
-  <Stack.Navigator screenOptions={stackScreenOptions}>
-    <Stack.Screen name="WholesaleStack" component={WholesaleScreen} options={{ title: 'Wholesale' }} />
-  </Stack.Navigator>
-);
-
 
 // --- MAIN DRAWER NAVIGATOR ---
 
@@ -134,7 +127,6 @@ const DrawerNavigator = () => {
       <Drawer.Screen name="Scans" component={ScansNavigator} options={{ drawerIcon: ({color, size}) => <Icon name="qr-code-scanner" color={color} size={size} /> }} />
       <Drawer.Screen name="Doctor Booking" component={DoctorsNavigator} options={{ drawerIcon: ({color, size}) => <Icon name="event" color={color} size={size} /> }} />
       <Drawer.Screen name="My Orders" component={OrdersNavigator} options={{ drawerIcon: ({color, size}) => <Icon name="inventory" color={color} size={size} /> }} />
-      <Drawer.Screen name="Wholesale" component={WholesaleNavigator} options={{ drawerIcon: ({color, size}) => <Icon name="store" color={color} size={size} /> }} />
       <Drawer.Screen name="Profile" component={ProfileNavigator} options={{ drawerIcon: ({color, size}) => <Icon name="person" color={color} size={size} /> }} />
       <Drawer.Screen name="Contact Us" component={ContactUsNavigator} options={{ drawerIcon: ({color, size}) => <Icon name="chat" color={color} size={size} /> }} />
       <Drawer.Screen name="About Us" component={AboutUsNavigator} options={{ drawerIcon: ({color, size}) => <Icon name="info" color={color} size={size} /> }} />

@@ -1,209 +1,142 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  Modal,
-  Pressable,
-  FlatList,
-} from 'react-native';
-import { useDispatch } from 'react-redux';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, FlatList, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-
-import { sampleLabTests, sampleHealthPackages } from '../../data/labTests';
-import { diagnosticCategories } from '../../data/categories';
-import { addItem } from '../../store/slices/cartSlice';
-
-// --- Main Lab Tests Screen Component ---
+import firestore from '@react-native-firebase/firestore';
 
 const LabTestsScreen = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('packages'); // 'packages' or 'tests'
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [isBookingModalVisible, setBookingModalVisible] = useState(false);
-  const [bookingItem, setBookingItem] = useState(null);
+  const [activeTab, setActiveTab] = useState('packages');
+  const [healthPackages, setHealthPackages] = useState([]);
+  const [departmentWiseTests, setDepartmentWiseTests] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const dispatch = useDispatch();
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const packagesSnapshot = await firestore().collection('health_packages').get();
+        const packagesData = packagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setHealthPackages(packagesData);
 
-  const handleBookItem = (item) => {
-    const itemToBook = {
-        ...item,
-        type: activeTab === 'packages' ? 'health_package' : 'lab_test',
-        // Add date/time selection logic here if needed
-    };
-    dispatch(addItem({ item: itemToBook }));
-    setBookingModalVisible(false);
-    setBookingItem(null);
-  };
+        const testsSnapshot = await firestore().collection('department_tests').get();
+        const testsData = testsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setDepartmentWiseTests(testsData);
 
-  const filteredTests = sampleLabTests.filter(test =>
-    test.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    (selectedCategory === 'all' || test.category.toLowerCase() === selectedCategory.toLowerCase())
-  );
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching lab tests data: ", error);
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
-  const renderCategoryGrid = () => (
-      <View style={styles.categoryGridContainer}>
-          {diagnosticCategories.map((cat, index) => (
-              <TouchableOpacity
-                key={cat.id}
-                style={[styles.categoryGridItem, selectedCategory === cat.name.toLowerCase() && styles.activeCategoryGridItem]}
-                onPress={() => setSelectedCategory(cat.name.toLowerCase())}
-              >
-                  <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                  <Text style={styles.categoryName} numberOfLines={2}>{cat.name}</Text>
-              </TouchableOpacity>
-          ))}
-      </View>
-  )
+  if (loading) {
+      return <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#007AFF" /></View>
+  }
 
   return (
     <ScrollView style={styles.container}>
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-            <Text style={styles.heroTitle}>Book Lab Tests & Health Checkups</Text>
-            <Text style={styles.heroSubtitle}>NABL accredited labs. Free home sample collection.</Text>
-        </View>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Trusted by 50,000+ customers</Text>
+        <Text style={styles.headerSubtitle}>Book Lab Tests at Home</Text>
+        <Text style={styles.headerDiscount}>Get up to 60% off on all lab tests. Free home sample collection. Reports in 6-24 hours.</Text>
+      </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-            <Icon name="search" size={24} color="#6B7280" style={{marginLeft: 12}} />
-            <TextInput
-                placeholder="Search for tests, packages..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                style={styles.searchInput}
-            />
-        </View>
+      <View style={styles.searchBar}>
+          <Icon name="search" size={24} color="#9CA3AF" />
+          <TextInput placeholder="Search for tests, health packages..." style={styles.searchInput} />
+      </View>
 
-        {/* Categories */}
-        <Text style={styles.sectionTitle}>Browse by Condition</Text>
-        {renderCategoryGrid()}
+      <View style={styles.infoRow}>
+          <View style={styles.infoItem}><Icon name="home" size={28} color="#007AFF" /><Text style={styles.infoText}>Home Collection</Text></View>
+          <View style={styles.infoItem}><Icon name="timer" size={28} color="#007AFF" /><Text style={styles.infoText}>Quick Reports</Text></View>
+          <View style={styles.infoItem}><Icon name="verified-user" size={28} color="#007AFF" /><Text style={styles.infoText}>NABL Certified</Text></View>
+          <View style={styles.infoItem}><Icon name="picture-as-pdf" size={28} color="#007AFF" /><Text style={styles.infoText}>Digital Reports</Text></View>
+      </View>
 
-        {/* Tabs */}
-        <View style={styles.tabsContainer}>
-            <TouchableOpacity
-                style={[styles.tab, activeTab === 'packages' && styles.activeTab]}
-                onPress={() => setActiveTab('packages')}
-            >
-                <Text style={[styles.tabText, activeTab === 'packages' && styles.activeTabText]}>Health Packages</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-                style={[styles.tab, activeTab === 'tests' && styles.activeTab]}
-                onPress={() => setActiveTab('tests')}
-            >
-                <Text style={[styles.tabText, activeTab === 'tests' && styles.activeTabText]}>Individual Tests</Text>
-            </TouchableOpacity>
-        </View>
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity style={[styles.tab, activeTab === 'packages' && styles.activeTab]} onPress={() => setActiveTab('packages')}>
+          <Text style={[styles.tabText, activeTab === 'packages' && styles.activeTabText]}>Health Packages</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tab, activeTab === 'tests' && styles.activeTab]} onPress={() => setActiveTab('tests')}>
+          <Text style={[styles.tabText, activeTab === 'tests' && styles.activeTabText]}>All Tests</Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* Content based on active tab */}
-        {activeTab === 'packages' ? (
+      {activeTab === 'packages' ? (
+        <FlatList
+            data={healthPackages}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+                <View style={styles.packageCard}>
+                    <View style={styles.packageHeader}>
+                        {item.popular && <View style={styles.popularTag}><Text style={styles.popularTagText}>Popular</Text></View>}
+                        <Text style={styles.packageDiscount}>{item.discount}% OFF</Text>
+                    </View>
+                    <Text style={styles.packageName}>{item.name}</Text>
+                    <Text style={styles.packageTests}>Includes {item.tests} tests</Text>
+                    <View style={styles.priceRow}>
+                        <Text style={styles.packagePrice}>₹{item.price}</Text>
+                        <Text style={styles.packageOldPrice}>₹{item.oldPrice}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.bookButton}><Text style={styles.bookButtonText}>Book Now</Text></TouchableOpacity>
+                </View>
+            )}
+            scrollEnabled={false}
+        />
+      ) : (
+        <View>
+            <Text style={styles.sectionTitle}>Department Wise Diagnostic Tests</Text>
             <FlatList
-                data={sampleHealthPackages}
-                keyExtractor={item => item.id}
-                renderItem={({item}) => <HealthPackageCard item={item} onBook={() => handleBookItem(item)} />}
-                scrollEnabled={false} // Since it's inside a ScrollView
-            />
-        ) : (
-            <FlatList
-                data={filteredTests}
-                keyExtractor={item => item.id}
-                renderItem={({item}) => <LabTestCard item={item} onBook={() => handleBookItem(item)} />}
+                data={departmentWiseTests}
+                numColumns={3}
+                keyExtractor={item => item.name}
+                renderItem={({item}) => (
+                    <TouchableOpacity style={styles.departmentCard}>
+                        <Icon name={item.icon} size={32} color="#007AFF" />
+                        <Text style={styles.departmentName}>{item.name}</Text>
+                    </TouchableOpacity>
+                )}
                 scrollEnabled={false}
             />
-        )}
+        </View>
+      )}
 
     </ScrollView>
   );
 };
 
-// --- Cards for Packages and Tests ---
-
-const HealthPackageCard = ({ item, onBook }) => {
-    const discount = Math.round(((item.originalPrice - item.discountedPrice) / item.originalPrice) * 100);
-    return (
-        <Animated.View entering={FadeInUp} style={styles.packageCard}>
-            <Image source={{ uri: item.image }} style={styles.packageImage} />
-            <View style={styles.packageContent}>
-                <Text style={styles.packageName}>{item.name}</Text>
-                <Text style={styles.packageDescription}>{item.description}</Text>
-                <View style={styles.packageInfoRow}>
-                    <Icon name="science" size={16} color="#007AFF" />
-                    <Text style={styles.packageInfoText}>{item.totalTests} Tests Included</Text>
-                </View>
-                <View style={styles.priceRow}>
-                    <Text style={styles.packagePrice}>₹{item.discountedPrice}</Text>
-                    <Text style={styles.packageMrp}>₹{item.originalPrice}</Text>
-                    <View style={styles.discountBadge}><Text style={styles.badgeText}>{discount}% OFF</Text></View>
-                </View>
-                <TouchableOpacity style={styles.bookButton} onPress={onBook}>
-                    <Text style={styles.bookButtonText}>Add to Cart</Text>
-                </TouchableOpacity>
-            </View>
-        </Animated.View>
-    );
-};
-
-const LabTestCard = ({ item, onBook }) => (
-    <Animated.View entering={FadeInUp} style={styles.testCard}>
-        <View style={{flex: 1}}>
-            <Text style={styles.testName}>{item.name}</Text>
-            <Text style={styles.testCategory}>{item.category}</Text>
-            {item.homeCollectionAvailable &&
-                <Text style={styles.homeCollectionText}>✓ Home Collection</Text>}
-        </View>
-        <View style={{alignItems: 'flex-end'}}>
-            <Text style={styles.testPrice}>₹{(item.price * (1 - item.discountPercent / 100)).toFixed(0)}</Text>
-            <TouchableOpacity style={styles.bookButtonSmall} onPress={onBook}>
-                <Text style={styles.bookButtonText}>Book</Text>
-            </TouchableOpacity>
-        </View>
-    </Animated.View>
-);
-
-
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F9FAFB' },
-    heroSection: { padding: 24, backgroundColor: '#10B981' },
-    heroTitle: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 8 },
-    heroSubtitle: { fontSize: 16, color: 'rgba(255,255,255,0.9)' },
-    searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 12, margin: 16, elevation: 2, shadowColor: '#000' },
-    searchInput: { flex: 1, height: 50, fontSize: 16, paddingLeft: 12 },
-    sectionTitle: { fontSize: 18, fontWeight: 'bold', marginHorizontal: 16, marginBottom: 12 },
-    categoryGridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', paddingHorizontal: 12 },
-    categoryGridItem: { width: '22%', aspectRatio: 1, margin: '1.5%', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, padding: 4 },
-    activeCategoryGridItem: { borderColor: '#007AFF', backgroundColor: '#EAF2FF' },
-    categoryIcon: { fontSize: 24 },
-    categoryName: { fontSize: 11, textAlign: 'center', marginTop: 4, fontWeight: '500' },
-    tabsContainer: { flexDirection: 'row', margin: 16, backgroundColor: '#E5E7EB', borderRadius: 12, padding: 4 },
-    tab: { flex: 1, paddingVertical: 10, borderRadius: 8 },
-    activeTab: { backgroundColor: '#FFFFFF' },
-    tabText: { textAlign: 'center', fontWeight: '600', color: '#6B7280' },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    header: { backgroundColor: '#EAF2FF', padding: 20, paddingTop: 30 },
+    headerTitle: { fontSize: 16, fontWeight: 'bold', textAlign: 'center', color: '#0059B3' },
+    headerSubtitle: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', color: '#1F2937', marginTop: 4 },
+    headerDiscount: { textAlign: 'center', color: '#4B5563', marginTop: 8, fontSize: 14 },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 10, paddingHorizontal: 16, margin: 16, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowOffset: {width: 0, height: 1} },
+    searchInput: { flex: 1, marginLeft: 12, height: 50, fontSize: 16 },
+    infoRow: { flexDirection: 'row', justifyContent: 'space-around', paddingBottom: 20, paddingHorizontal: 10, backgroundColor: '#FFFFFF' },
+    infoItem: { alignItems: 'center', gap: 8 },
+    infoText: { fontSize: 12, color: '#4B5563' },
+    tabsContainer: { flexDirection: 'row', marginHorizontal: 16, marginTop: 20, backgroundColor: '#E5E7EB', borderRadius: 10, padding: 4 },
+    tab: { flex: 1, paddingVertical: 12, borderRadius: 8 },
+    activeTab: { backgroundColor: '#FFFFFF', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowOffset: {width: 0, height: 1} },
+    tabText: { textAlign: 'center', fontWeight: '600', color: '#4B5563', fontSize: 15 },
     activeTabText: { color: '#007AFF' },
-    packageCard: { marginHorizontal: 16, marginBottom: 16, backgroundColor: '#FFFFFF', borderRadius: 12, elevation: 1, shadowColor: '#000' },
-    packageImage: { width: '100%', height: 150, borderTopLeftRadius: 12, borderTopRightRadius: 12 },
-    packageContent: { padding: 16 },
-    packageName: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
-    packageDescription: { fontSize: 14, color: '#6B7280', marginBottom: 12 },
-    packageInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-    packageInfoText: { fontWeight: '500' },
-    priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 16 },
-    packagePrice: { fontSize: 22, fontWeight: 'bold', color: '#007AFF' },
-    packageMrp: { textDecorationLine: 'line-through', color: '#9CA3AF' },
-    discountBadge: { backgroundColor: '#EF4444', paddingVertical: 2, paddingHorizontal: 6, borderRadius: 4 },
-    badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' },
-    bookButton: { backgroundColor: '#007AFF', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
-    bookButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 },
-    testCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 12, padding: 16, borderRadius: 12, elevation: 1 },
-    testName: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-    testCategory: { color: '#6B7280', marginBottom: 8 },
-    homeCollectionText: { color: '#10B981', fontWeight: '500' },
-    testPrice: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#007AFF' },
-    bookButtonSmall: { backgroundColor: '#EAF2FF', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 },
+    sectionTitle: { fontSize: 20, fontWeight: 'bold', marginHorizontal: 16, marginTop: 10, marginBottom: 12, color: '#1F2937' },
+    departmentCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 12, margin: 6, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', gap: 8 },
+    departmentName: { textAlign: 'center', fontWeight: '500' },
+    packageCard: { backgroundColor: '#FFFFFF', borderRadius: 12, marginHorizontal: 16, marginBottom: 16, padding: 16, borderWidth: 1, borderColor: '#E5E7EB' },
+    packageHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    popularTag: { backgroundColor: '#10B981', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+    popularTagText: { color: '#FFFFFF', fontSize: 12, fontWeight: 'bold' },
+    packageDiscount: { color: '#10B981', fontWeight: 'bold', fontSize: 14 },
+    packageName: { fontSize: 20, fontWeight: 'bold', color: '#1F2937' },
+    packageTests: { color: '#6B7280', marginVertical: 8, fontSize: 15 },
+    priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10, marginBottom: 16 },
+    packagePrice: { fontSize: 24, fontWeight: 'bold', color: '#1F2937' },
+    packageOldPrice: { textDecorationLine: 'line-through', fontSize: 16, color: '#9CA3AF' },
+    bookButton: { backgroundColor: '#007AFF', padding: 14, borderRadius: 8, alignItems: 'center' },
+    bookButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 }
 });
 
 export default LabTestsScreen;

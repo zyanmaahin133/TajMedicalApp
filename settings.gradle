@@ -1,0 +1,22 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+    }
+}
+
+rootProject.name = 'TajMedicalApp'
+include ':app'
+
+apply from: new File(settings.getRootDir(), "/node_modules/react-native/android/sdk-49.gradle")
+apply from: new File(settings.getRootDir(), "/node_modules/react-native/android/sdk-50.gradle")

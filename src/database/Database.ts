@@ -1,39 +1,32 @@
-import SQLite from 'react-native-sqlite-storage';
-import { sampleMedicines } from '../data/medicines';
+import firestore from '@react-native-firebase/firestore';
+import { sampleMedicines } from '../data/medicines'; // Assuming you still want to use this for initial data
 
-const db = SQLite.openDatabase(
-  {
-    name: 'TajMedical.db',
-    location: 'default',
-  },
-  () => { console.log('Database opened'); },
-  error => { console.error('Error opening database', error); }
-);
+// A function to initialize the database with collections and initial data.
+export const initDatabase = async () => {
+  console.log('Initializing database...');
 
-export const initDatabase = () => {
-  db.transaction(tx => {
-    // Create tables
-    tx.executeSql('CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT, role TEXT)');
-    tx.executeSql('CREATE TABLE IF NOT EXISTS Medicines (id TEXT PRIMARY KEY, name TEXT, genericName TEXT, brand TEXT, price REAL, discountPercent INTEGER, image TEXT, categoryId TEXT, form TEXT, packSize TEXT, requiresPrescription INTEGER)');
-
-    // Check if tables are empty before populating
-    tx.executeSql('SELECT COUNT(*) FROM Users', [], (_, { rows }) => {
-      if (rows.item(0)['COUNT(*)'] === 0) {
-        // Populate Users table
-        tx.executeSql('INSERT INTO Users (username, password, role) VALUES (?, ?, ?), (?, ?, ?)', ['admin', 'admin123', 'admin', 'user', 'user123', 'user']);
-      }
+  // Create a default 'admin' and 'user' upon first launch if they don't exist
+  const adminUser = await firestore().collection('users').doc('admin').get();
+  if (!adminUser.exists) {
+    await firestore().collection('users').doc('admin').set({
+      email: 'admin@tajmedical.com',
+      role: 'admin',
     });
+    console.log('Admin user created');
+  }
 
-    tx.executeSql('SELECT COUNT(*) FROM Medicines', [], (_, { rows }) => {
-      if (rows.item(0)['COUNT(*)'] === 0) {
-        // Populate Medicines table
-        sampleMedicines.forEach(med => {
-          tx.executeSql('INSERT INTO Medicines (id, name, genericName, brand, price, discountPercent, image, categoryId, form, packSize, requiresPrescription) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [med.id, med.name, med.genericName, med.brand, med.price, med.discountPercent, med.image, med.categoryId, med.form, med.packSize, med.requiresPrescription ? 1 : 0]);
-        });
-      }
+  // Check if medicines collection is empty, then populate it
+  const medicinesSnapshot = await firestore().collection('medicines').limit(1).get();
+  if (medicinesSnapshot.empty) {
+    console.log('Populating medicines...');
+    const batch = firestore().batch();
+    sampleMedicines.forEach(med => {
+      const docRef = firestore().collection('medicines').doc(med.id);
+      batch.set(docRef, med);
     });
-  });
+    await batch.commit();
+    console.log('Medicines populated.');
+  }
+
+  console.log('Database initialization complete.');
 };
-
-export default db;
